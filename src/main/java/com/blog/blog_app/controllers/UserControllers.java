@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,6 +35,7 @@ public class UserControllers {
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> deleteMapping(@Valid @PathVariable Integer id) {
         this.userService.deleteUser(id);
@@ -49,7 +51,7 @@ public class UserControllers {
 
 
     //updating role by user id and role id
-    @PutMapping("update/user/{userId}/role/{roleId}")
+    @PutMapping("/update/user/{userId}/role/{roleId}")
     public ResponseEntity<UserUpdateRoleResponseDto> updateRoleOfUser
     (
             @PathVariable Integer userId,

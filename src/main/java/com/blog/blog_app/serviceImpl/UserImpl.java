@@ -52,7 +52,7 @@ public class UserImpl implements UserService {
         User user = this.modelMapper.map(userDto, User.class);
 
         //do manually set up of password and role
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPassword(passwordEncoder.encode(userDto.getPassword()));
 
         //setting up role also
         Role role = this.roleRepo.findById(AppConstants.NORMAL_ROLE_ID).orElseThrow(() -> new ResourceNotFoundException("roleID", "id", AppConstants.NORMAL_ROLE_ID));

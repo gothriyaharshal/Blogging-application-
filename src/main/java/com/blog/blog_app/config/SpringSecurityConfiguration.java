@@ -1,26 +1,54 @@
 package com.blog.blog_app.config;
 
+import com.blog.blog_app.security.JwtAuthenticationEntryPoint;
+import com.blog.blog_app.security.JwtFilterChainAuthentication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SpringSecurityConfiguration {
-
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-    {
-        http.csrf(csrf->csrf.disable())
-                .authorizeHttpRequests(auth->auth.anyRequest().permitAll())
-                .httpBasic(Customizer.withDefaults());
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtFilterChainAuthentication jwtFilterChainAuthentication, JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint)
+            throws Exception {
 
-       return http.build();
+        http
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers
+                                ("/auth/user/login" ,
+                                        // Swagger
+                                        "/v3/api-docs/**",
+                                        "/swagger-ui/**",
+                                        "/swagger-ui.html"
+
+                                )
+                        .permitAll()
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
+                .addFilterBefore(jwtFilterChainAuthentication,
+                        UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
     }
 
 

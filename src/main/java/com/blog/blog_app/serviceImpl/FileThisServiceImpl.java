@@ -32,7 +32,7 @@ public class FileThisServiceImpl implements FileServieForThisApplication {
         try {
             Files.copy(file.getInputStream(), Path.of(fullPath));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to upload image.", e);
         }
 
         System.out.println(Random_GeneratedFull_FileName);

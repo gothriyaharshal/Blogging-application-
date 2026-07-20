@@ -20,8 +20,8 @@ public class RoleDataInitializer implements CommandLineRunner {
     @Override
     public void run(String @NonNull ... args) {
         if (roleRepo.count() == 0) {
-            this.roleRepo.save(new Role("ADMIN"));
-            this.roleRepo.save(new Role("Normal"));
+            this.roleRepo.save(new Role("ROLE_ADMIN"));
+            this.roleRepo.save(new Role("ROLE_USER"));
         }
     }
 }
