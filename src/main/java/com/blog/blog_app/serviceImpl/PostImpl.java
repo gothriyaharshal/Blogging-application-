@@ -16,12 +16,18 @@ import com.blog.blog_app.response_dto.PostResponseByUerId;
 import com.blog.blog_app.services.PostService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,6 +41,9 @@ public class PostImpl implements PostService {
     private final UserRepo userRepo;
 
     private final CategoryRepo categoryRepo;
+
+    @Value("${project.ThisImageApp}")
+    private String imagePath;
 
     @Autowired
     PostImpl(ModelMapper modelMapper, PostRepo postRepo, UserRepo userRepo, CategoryRepo categoryRepo) {
@@ -106,11 +115,25 @@ public class PostImpl implements PostService {
 
     }
 
+
     @Override
     public void deletePost(Integer postId) {
         Post post = this.postRepo.findById(postId).orElseThrow(() -> new ResourceNotFoundException("post", "id", postId));
+
+        //deleting file name also from server
+        String imageName = post.getImageName();
+
+        Path path = Paths.get(imagePath + File.separator + imageName);
+
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            throw new RuntimeException("Image could not be deleted", e);
+        }
         this.postRepo.delete(post);
     }
+
+
 
     @Override
     public PostResponseByUerId getPostByUserId(Integer userId, Integer PageNumber, Integer PageSize, String sortBy, String sortDir) {

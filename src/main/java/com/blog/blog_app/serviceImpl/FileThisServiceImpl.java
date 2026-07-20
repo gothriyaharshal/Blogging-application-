@@ -37,7 +37,7 @@ public class FileThisServiceImpl implements FileServieForThisApplication {
 
         System.out.println(Random_GeneratedFull_FileName);
 
-        return Normal_name;
+        return Random_GeneratedFull_FileName;
     }
 
     @Override
