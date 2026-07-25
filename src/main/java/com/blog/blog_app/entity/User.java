@@ -1,12 +1,18 @@
 package com.blog.blog_app.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Entity
@@ -26,7 +32,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return this.name;
+        return this.email;
     }
 
     @Override
@@ -56,11 +62,12 @@ public class User implements UserDetails {
 
     private String name;
 
+    @Column(unique = true)
     private String email;
 
     private String password;
 
-   private String about;
+    private String about;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Post> postList;
@@ -73,6 +80,6 @@ public class User implements UserDetails {
             , joinColumns = @JoinColumn(name = "user_ID", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "roleId")
     )
-    private Set<Role> role  = new HashSet<>();
+    private Set<Role> role = new HashSet<>();
 
 }

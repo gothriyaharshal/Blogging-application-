@@ -30,8 +30,8 @@ public class Post {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn() //in Cateogary table joining and foreign key column name
-    private Cateogary cateogary;
+    @JoinColumn() //in Category table joining and foreign key column name
+    private Category category;
 
     @OneToMany(mappedBy = "post", fetch = FetchType.EAGER )
     private List<Comment> postcommentList;

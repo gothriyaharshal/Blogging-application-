@@ -11,16 +11,16 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class CateogaryDto {
+public class CreateCateogaryDtoRequest {
 
-
-    private Integer categoryId;
     @NotBlank(message = "Please Define Which type of Category post is this")
-    @Size(min = 3,max = 50 , message = "Minimun size is 3 and maximum size is 50")
+    @Size(min = 3, max = 500, message = "Minimun size is 3 and maximum size is 50")
     private String categoryTitle;
 
-    @NotBlank(message = "Please provide Category description")
-    @Size(min = 3 , max = 50,message = "Minimun size is 3 and maximum size is 50")
-    private String categoryDescription;
 
+    @NotBlank(message = "Please provide Category description")
+    @Size(min = 3, max = 500, message = "Minimun size is 3 and maximum size is 50")
+    private String categoryDescription;
 }
+
+

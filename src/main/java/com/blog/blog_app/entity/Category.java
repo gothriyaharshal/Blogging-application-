@@ -15,13 +15,16 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "categories")
-public class Cateogary {
+public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer cateogary_id;
-    private String cateogary_title;
-    private String cateogary_Description;
+    private Integer categoryId;
 
-    @OneToMany(mappedBy = "cateogary" , cascade = CascadeType.ALL , fetch = FetchType.LAZY)
+    @Column(unique = true)
+    private String categoryTitle;
+
+    private String categoryDescription;
+
+    @OneToMany(mappedBy = "category" , cascade = CascadeType.ALL , fetch = FetchType.LAZY)
     private List<Post> posts;
 }

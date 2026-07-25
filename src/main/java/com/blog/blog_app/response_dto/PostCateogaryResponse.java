@@ -20,5 +20,6 @@ public class PostCateogaryResponse {
     private int totalElement;
     private int totalPages;
     private boolean lastPage;
-    private int cateogaryId;
+    private int categoryId;
+
 }

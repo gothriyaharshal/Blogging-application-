@@ -2,6 +2,10 @@ package com.blog.blog_app.response_dto;
 
 import com.blog.blog_app.request_dto.CateogaryDto;
 import com.blog.blog_app.request_dto.UserDto;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,8 +24,10 @@ public class CreatedPostResponse {
     private String postContent;
     private Date addedDate;
     private String imageName;
-    private UserDto user;
-    private CateogaryDto cateogary;
+
+    private String userName;
+    private String category_title;
+
 }
 
 

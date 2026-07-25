@@ -1,10 +1,13 @@
 package com.blog.blog_app.serviceImpl;
 
+import com.blog.blog_app.entity.Category;
+import com.blog.blog_app.exceptions.DuplicateEntryException;
 import com.blog.blog_app.request_dto.CateogaryDto;
-import com.blog.blog_app.entity.Cateogary;
 import com.blog.blog_app.exceptions.ResourceNotFoundException;
 import com.blog.blog_app.repository.CategoryRepo;
-import com.blog.blog_app.services.CateogaryService;
+import com.blog.blog_app.request_dto.CreateCateogaryDtoRequest;
+import com.blog.blog_app.response_dto.CreateCateogaryResponse;
+import com.blog.blog_app.services.CategoryService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,7 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class CateogaryImpl implements CateogaryService {
+public class CateogaryImpl implements CategoryService {
 
     private final ModelMapper modelMapper;
 
@@ -26,40 +29,57 @@ public class CateogaryImpl implements CateogaryService {
     }
 
     @Override
-    public CateogaryDto createCateogary(CateogaryDto cateogaryDto) {
+    public CreateCateogaryResponse createCategory(CreateCateogaryDtoRequest createCateogaryDtoRequest) {
 
-        Cateogary cateogary = this.modelMapper.map(cateogaryDto, Cateogary.class);
-        Cateogary savedCateogary = categoryRepo.save(cateogary);
+        if(this.categoryRepo.existsByCategoryTitle(createCateogaryDtoRequest.getCategoryTitle()))
+        {
+            throw new DuplicateEntryException("A category with this title","!!", createCateogaryDtoRequest.getCategoryTitle());
+        }
 
-        return this.modelMapper.map(savedCateogary, CateogaryDto.class);
+        //mapping into Category class
+        //Gett from Request set them into Category Entity
+        Category cateogary = this.modelMapper.map(createCateogaryDtoRequest, Category.class);
+
+        //save them to db
+        Category savedCateogary = categoryRepo.save(cateogary);
+
+        //return an Response
+         return this.modelMapper.map(savedCateogary, CreateCateogaryResponse.class);
     }
 
     @Override
-    public CateogaryDto updateCateogary(CateogaryDto cateogaryDto, Integer cateogaryId) {
-        Cateogary cateogaryD = this.categoryRepo.findById(cateogaryId).orElseThrow(() -> new ResourceNotFoundException("cateogary", "Id", cateogaryId));
-        cateogaryD.setCateogary_title(cateogaryDto.getCateogary_title());
-        cateogaryD.setCateogary_Description(cateogaryDto.getCateogary_Description());
-        return this.modelMapper.map(cateogaryD, CateogaryDto.class);
+    public CreateCateogaryResponse updateCategory(CreateCateogaryDtoRequest createCateogaryDtoRequest, Integer categoryId) {
+
+        //first we do verification that is there an category with this id
+        Category category = this.categoryRepo.findById(categoryId).orElseThrow(() -> new ResourceNotFoundException("category", "Id", categoryId));
+
+        category.setCategoryTitle(createCateogaryDtoRequest.getCategoryTitle());
+        category.setCategoryDescription(createCateogaryDtoRequest.getCategoryDescription());
+
+        Category save = this.categoryRepo.save(category);
+
+        //then after we generate a response
+        return this.modelMapper.map(save, CreateCateogaryResponse.class);
     }
 
     @Override
-    public CateogaryDto CateogaryGetByID(Integer id) {
+    public CreateCateogaryResponse CategoryGetByID(Integer id) {
 
-        Cateogary cateogary = this.categoryRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("cateogary", "id", id));
-        return this.modelMapper.map(cateogary, CateogaryDto.class);
+        Category category = this.categoryRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("category", "id", id));
+        return this.modelMapper.map(category, CreateCateogaryResponse.class);
     }
 
     @Override
-    public List<CateogaryDto> getAllCateogaries() {
+    public List<CreateCateogaryResponse> getAllCategories() {
 
-        List<Cateogary> listData = this.categoryRepo.findAll();
+        List<Category> listData = this.categoryRepo.findAll();
 
-        return listData.stream().map(cateogary -> this.modelMapper.map(cateogary, CateogaryDto.class)).collect(Collectors.toList());
+        return listData.stream().map(cateogary -> this.modelMapper.map(cateogary, CreateCateogaryResponse.class)).collect(Collectors.toList());
     }
 
     @Override
     public void deleteById(Integer id) {
-        Cateogary cateogary = this.categoryRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Cateogary", "id", id));
+        Category cateogary = this.categoryRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Category", "id", id));
         categoryRepo.delete(cateogary);
     }
 }

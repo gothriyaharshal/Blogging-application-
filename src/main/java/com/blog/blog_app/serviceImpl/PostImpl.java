@@ -1,8 +1,8 @@
 package com.blog.blog_app.serviceImpl;
 
+import com.blog.blog_app.entity.Category;
 import com.blog.blog_app.request_dto.CreatingPostDto;
 import com.blog.blog_app.request_dto.PostDto;
-import com.blog.blog_app.entity.Cateogary;
 import com.blog.blog_app.entity.Post;
 import com.blog.blog_app.entity.User;
 import com.blog.blog_app.exceptions.ResourceNotFoundException;
@@ -13,6 +13,7 @@ import com.blog.blog_app.response_dto.CreatedPostResponse;
 import com.blog.blog_app.response_dto.PostCateogaryResponse;
 import com.blog.blog_app.response_dto.PostResponse;
 import com.blog.blog_app.response_dto.PostResponseByUerId;
+import com.blog.blog_app.services.FileServieForThisApplication;
 import com.blog.blog_app.services.PostService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +23,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.FileNameMap;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,6 +45,9 @@ public class PostImpl implements PostService {
 
     private final CategoryRepo categoryRepo;
 
+    @Autowired
+    private FileServieForThisApplication fileServieForThisApplication;
+
     @Value("${project.ThisImageApp}")
     private String imagePath;
 
@@ -58,27 +64,38 @@ public class PostImpl implements PostService {
 
         User user = this.userRepo.findById(userId).orElseThrow(() -> new ResourceNotFoundException("uderId", "id", userId));
 
-        Cateogary cateogary = this.categoryRepo.findById(cateogaryId).orElseThrow(() -> new ResourceNotFoundException("cateogaryId", "id", cateogaryId));
+        Category cateogary = this.categoryRepo.findById(cateogaryId).orElseThrow(() -> new ResourceNotFoundException("cateogaryId", "id", cateogaryId));
 
         Post post = this.modelMapper.map(creatingPostDto, Post.class);
 
         post.setUser(user);
-        post.setCateogary(cateogary);
-        post.setImageName("default.png");
-        /*post.setPostContent(postDto.getPostContent());
-        post.setPostTitle(post.getPostTitle());
-        post.setAddedDate(post.getAddedDate());
-*/
-        Post savedPost = this.postRepo.save(post);
-        return this.modelMapper.map(savedPost, CreatedPostResponse.class);
+        post.setCategory(cateogary);
 
+        Post savedPost = this.postRepo.save(post);
+
+        CreatedPostResponse map = this.modelMapper.map(savedPost, CreatedPostResponse.class);
+        map.setUserName(savedPost.getUser().getName());
+        map.setCategory_title(savedPost.getCategory().getCategoryTitle());
+
+        return map;
     }
 
     @Override
-    public PostDto updatePost(PostDto postDto, Integer postid) {
+    public CreatedPostResponse updatePost(CreatingPostDto postDto, Integer posted ) {
 
         //first validating post id
-        Post post = this.postRepo.findById(postid).orElseThrow(() -> new ResourceNotFoundException("post", "id", postid));
+        Post post = this.postRepo.findById(posted).orElseThrow(() -> new ResourceNotFoundException("post", "id", posted));
+
+        String imageName = post.getImageName();
+
+        Path path = Paths.get(imagePath + File.separator + imageName);
+
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            throw new RuntimeException("Image could not be deleted", e);
+        }
+
 
 
         //now we update post by particular id
@@ -90,15 +107,23 @@ public class PostImpl implements PostService {
 
         Post save = this.postRepo.save(post);
 
-        return this.modelMapper.map(save, PostDto.class);
+        CreatedPostResponse createdPostResponse = this.modelMapper.map(save, CreatedPostResponse.class);
+        createdPostResponse.setCategory_title(save.getCategory().getCategoryTitle());
+
+        return createdPostResponse;
     }
 
     @Override
-    public PostDto getPostByID(Integer postId) {
+    public CreatedPostResponse getPostByID(Integer postId) {
 
         Post post = this.postRepo.findById(postId).orElseThrow(() -> new ResourceNotFoundException("post", "id", postId));
 
-        return this.modelMapper.map(post, PostDto.class);
+
+        CreatedPostResponse map = this.modelMapper.map(post, CreatedPostResponse.class);
+        map.setUserName(post.getUser().getName());
+        map.setCategory_title(post.getCategory().getCategoryTitle());
+
+        return map;
     }
 
     @Override
@@ -132,7 +157,6 @@ public class PostImpl implements PostService {
         }
         this.postRepo.delete(post);
     }
-
 
 
     @Override
@@ -172,7 +196,7 @@ public class PostImpl implements PostService {
     }
 
     @Override
-    public PostCateogaryResponse getPostByCateogaryId(Integer cateogaryId, Integer PageNumber, Integer PageSize, String sortBy, String sortDir) {
+    public PostCateogaryResponse getPostByCategoryId(Integer cateogaryId, Integer PageNumber, Integer PageSize, String sortBy, String sortDir) {
 
 
         Sort sort;
@@ -182,12 +206,12 @@ public class PostImpl implements PostService {
             sort = Sort.by(sortBy).descending();
         }
 
-        Cateogary cateogaryID = this.categoryRepo.findById(cateogaryId).orElseThrow(() -> new ResourceNotFoundException("cateogaryId", "id", cateogaryId));
+        Category cateogaryID = this.categoryRepo.findById(cateogaryId).orElseThrow(() -> new ResourceNotFoundException("cateogaryId", "id", cateogaryId));
 
         Pageable pageable = PageRequest.of(PageNumber, PageSize, sort);
 
 
-        Page<Post> allPage = this.postRepo.findByCateogary(cateogaryID, pageable);
+        Page<Post> allPage = this.postRepo.findByCategory(cateogaryID, pageable);
 
         List<Post> allPost = allPage.getContent();
 
@@ -196,7 +220,7 @@ public class PostImpl implements PostService {
         PostCateogaryResponse postCateogaryResponse = new PostCateogaryResponse();
 
         postCateogaryResponse.setAllPost(postDto);
-        postCateogaryResponse.setCateogaryId(cateogaryId);
+        postCateogaryResponse.setCategoryId(cateogaryId);
         postCateogaryResponse.setPageNumber(allPage.getNumber());
         postCateogaryResponse.setPageSize(allPage.getSize());
         postCateogaryResponse.setTotalElement((int) allPage.getTotalElements());
@@ -252,6 +276,12 @@ public class PostImpl implements PostService {
 
 
         return postResponse;
+
+    }
+
+    @Override
+    public void createFullPost(CreatingPostDto creatingPostDto, Integer userId, Integer categoryId) {
+
 
     }
 

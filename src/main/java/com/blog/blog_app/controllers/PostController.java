@@ -46,22 +46,65 @@ public class PostController {
     @Value("${project.ThisImageApp}")
     private String path;
 
+
+    //Normal posting where i am only post without image
     @PostMapping("/create/user/{userId}/cateogary/{cateogaryId}")
     public ResponseEntity<CreatedPostResponse> creatingPostWithController(@RequestBody CreatingPostDto creatingPostDto, @PathVariable Integer userId, @PathVariable Integer cateogaryId) {
         CreatedPostResponse createdPostResponse = this.postService.createPost(creatingPostDto, userId, cateogaryId);
         return new ResponseEntity<>(createdPostResponse, HttpStatus.CREATED);
     }
 
-    @PutMapping("/update/{Id}")
-    public ResponseEntity<PostDto> updatePost(@RequestBody PostDto postDto, @PathVariable Integer Id) {
-        PostDto postDto1 = this.postService.updatePost(postDto, Id);
-        return new ResponseEntity<>(postDto1, HttpStatus.OK);
+    //post where i include image and all data
+    @PostMapping(value = "/create/user/{userId}/category/{categoryId}/"
+            , consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<CreatedPostResponse> creatingPost(
+            @RequestPart("post") CreatingPostDto creatingPostDto,
+            @RequestPart("image") MultipartFile file,
+            @PathVariable Integer userId, @PathVariable Integer categoryId) {
+        String imageName = fileServieForThisApplication.creatingImage(path, file);
+        System.out.println("image name " + imageName);
+        creatingPostDto.setImageName(imageName);
+
+
+        CreatedPostResponse createdPostResponse = this.postService.createPost(creatingPostDto, userId, categoryId);
+        return new ResponseEntity<>(createdPostResponse, HttpStatus.CREATED);
     }
 
+
+    //updating post where we not updating images portion
+    @PutMapping("/update/{Id}")
+    public ResponseEntity<CreatedPostResponse> updatePost(@RequestBody CreatingPostDto creatingPostDto, @PathVariable Integer Id) {
+        CreatedPostResponse createdPostResponse = this.postService.updatePost(creatingPostDto, Id);
+        return new ResponseEntity<>(createdPostResponse, HttpStatus.OK);
+    }
+
+
+
+    //updating post where we updating full post and remove also old post from memeory
+    @PutMapping(value = "/updating/{id}"
+             ,consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<CreatedPostResponse> updatingPost(  @RequestPart("post") CreatingPostDto creatingPostDto,
+                                           @RequestPart("image") MultipartFile file,
+                                           @PathVariable Integer id
+    )
+    {
+
+        String string = this.fileServieForThisApplication.creatingImage(path, file);
+        System.out.println(string);
+        creatingPostDto.setImageName(string);
+
+        CreatedPostResponse createdPostResponse = this.postService.updatePost(creatingPostDto, id);
+        return new ResponseEntity<>(createdPostResponse,HttpStatus.OK);
+
+    }
+
+
     @GetMapping("/get/{id}")
-    public ResponseEntity<PostDto> getPostByIDs(@PathVariable Integer id) {
-        PostDto postDto = this.postService.getPostByID(id);
-        return new ResponseEntity<>(postDto, HttpStatus.OK);
+    public ResponseEntity<CreatedPostResponse> getPostByIDs(@PathVariable Integer id) {
+        CreatedPostResponse postByID = this.postService.getPostByID(id);
+        return new ResponseEntity<>(postByID, HttpStatus.OK);
     }
 
     @GetMapping("/getAllpost/")
@@ -96,7 +139,7 @@ public class PostController {
             , @RequestParam(value = "sortBy", defaultValue = AppConstants.SORT_BY, required = false) String sortBy
             , @RequestParam(value = "sortDir", defaultValue = AppConstants.SORT_DIR, required = false) String sortDir
     ) {
-        PostCateogaryResponse postCateogaryResponse = this.postService.getPostByCateogaryId(id, pageNumber, pageSize, sortBy, sortDir);
+        PostCateogaryResponse postCateogaryResponse = this.postService.getPostByCategoryId(id, pageNumber, pageSize, sortBy, sortDir);
         return new ResponseEntity<>(postCateogaryResponse, HttpStatus.OK);
     }
 
@@ -127,7 +170,7 @@ public class PostController {
     //post image upload
     @PostMapping("/image/{postId}")
 
-    public ResponseEntity<PostDto> updloadImage(
+    public ResponseEntity<CreatedPostResponse> updloadImage(
             @RequestParam("imagename") MultipartFile imagename,
             @PathVariable Integer postId
 
@@ -136,17 +179,13 @@ public class PostController {
         System.out.println(imagename.getSize());
         System.out.println(imagename.isEmpty());
 
-        PostDto postDto = this.postService.getPostByID(postId);
+        CreatedPostResponse postByID = this.postService.getPostByID(postId);
 
         String fileName = this.fileServieForThisApplication.creatingImage(path, imagename);
         System.out.println(fileName);
-        postDto.setImageName(fileName);
+        postByID.setImageName(fileName);
 
-
-        PostDto updatedPost = this.postService.updatePost(postDto, postId);
-
-        return new ResponseEntity<>(updatedPost, HttpStatus.CREATED);
-
+        return new ResponseEntity<>(postByID,HttpStatus.OK);
     }
 
     @GetMapping("/image/{imagename}")
