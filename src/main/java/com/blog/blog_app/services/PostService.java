@@ -33,6 +33,4 @@ public interface PostService {
     PostResponse getAllPostInPaginationAndSorting(Integer PageNumber , Integer PageSize ,String sortBy, String sortDir);
 
 
-   void createFullPost(CreatingPostDto creatingPostDto , Integer userId , Integer categoryId);
-
 }

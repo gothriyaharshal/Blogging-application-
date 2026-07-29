@@ -23,11 +23,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.FileNameMap;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -64,12 +62,12 @@ public class PostImpl implements PostService {
 
         User user = this.userRepo.findById(userId).orElseThrow(() -> new ResourceNotFoundException("uderId", "id", userId));
 
-        Category cateogary = this.categoryRepo.findById(cateogaryId).orElseThrow(() -> new ResourceNotFoundException("cateogaryId", "id", cateogaryId));
+        Category category = this.categoryRepo.findById(cateogaryId).orElseThrow(() -> new ResourceNotFoundException("cateogaryId", "id", cateogaryId));
 
         Post post = this.modelMapper.map(creatingPostDto, Post.class);
 
         post.setUser(user);
-        post.setCategory(cateogary);
+        post.setCategory(category);
 
         Post savedPost = this.postRepo.save(post);
 
@@ -109,9 +107,12 @@ public class PostImpl implements PostService {
 
         CreatedPostResponse createdPostResponse = this.modelMapper.map(save, CreatedPostResponse.class);
         createdPostResponse.setCategory_title(save.getCategory().getCategoryTitle());
+        createdPostResponse.setUserName(save.getUser().getName());
 
         return createdPostResponse;
     }
+
+
 
     @Override
     public CreatedPostResponse getPostByID(Integer postId) {
@@ -279,11 +280,6 @@ public class PostImpl implements PostService {
 
     }
 
-    @Override
-    public void createFullPost(CreatingPostDto creatingPostDto, Integer userId, Integer categoryId) {
-
-
-    }
 
 
 }

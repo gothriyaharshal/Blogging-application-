@@ -33,7 +33,7 @@ public class JwtFilterChainAuthentication extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        //when login api hit it goes null first beacuse we did no have any thing in our header authorization
+        //when login api hit it goes null first because we did no have anything in our header authorization
         String requestToken = request.getHeader("Authorization");
         System.out.println("it contains whole token with bearer" + requestToken);
 
