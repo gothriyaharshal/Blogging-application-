@@ -6,10 +6,6 @@ public class DuplicateEntryException extends RuntimeException {
     String fieldValueStr;
 
 
-    public DuplicateEntryException(String message) {
-        super(message);
-    }
-
     public DuplicateEntryException(String resourceName, String fieldName, String fieldValueStr) {
         super(String.format("%s already register with this %s : %s", resourceName, fieldName, fieldValueStr));
         this.resourceName = resourceName;

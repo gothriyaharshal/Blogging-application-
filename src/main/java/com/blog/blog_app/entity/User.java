@@ -22,6 +22,35 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User implements UserDetails {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+
+    private String name;
+
+    @Column(unique = true)
+    private String email;
+
+    private String password;
+
+    private String about;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Post> postList;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<Comment> usercommentList;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "user_role"
+            , joinColumns = @JoinColumn(name = "user_ID", referencedColumnName = "id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "roleId")
+    )
+    private Set<Role> role = new HashSet<>();
+
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
 
@@ -55,31 +84,5 @@ public class User implements UserDetails {
         return UserDetails.super.isEnabled();
     }
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
-
-
-    private String name;
-
-    @Column(unique = true)
-    private String email;
-
-    private String password;
-
-    private String about;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Post> postList;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private List<Comment> usercommentList;
-
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "user_role"
-            , joinColumns = @JoinColumn(name = "user_ID", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "roleId")
-    )
-    private Set<Role> role = new HashSet<>();
 
 }
