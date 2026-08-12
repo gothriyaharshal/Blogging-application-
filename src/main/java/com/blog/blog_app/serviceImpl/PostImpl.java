@@ -1,6 +1,13 @@
 package com.blog.blog_app.serviceImpl;
 
 import com.blog.blog_app.entity.Category;
+import com.blog.blog_app.entity.Payment;
+import com.blog.blog_app.enums.PaymentStatus;
+import com.blog.blog_app.enums.PostStatus;
+import com.blog.blog_app.enums.VerificationResult;
+import com.blog.blog_app.exceptions.BadRequestException;
+import com.blog.blog_app.exceptions.UnauthorizedException;
+import com.blog.blog_app.repository.PaymentRepository;
 import com.blog.blog_app.request_dto.CreatingPostDto;
 import com.blog.blog_app.request_dto.PostDto;
 import com.blog.blog_app.entity.Post;
@@ -9,12 +16,10 @@ import com.blog.blog_app.exceptions.ResourceNotFoundException;
 import com.blog.blog_app.repository.CategoryRepo;
 import com.blog.blog_app.repository.PostRepo;
 import com.blog.blog_app.repository.UserRepo;
-import com.blog.blog_app.response_dto.CreatedPostResponse;
-import com.blog.blog_app.response_dto.PostCateogaryResponse;
-import com.blog.blog_app.response_dto.PostResponse;
-import com.blog.blog_app.response_dto.PostResponseByUerId;
-import com.blog.blog_app.services.FileServieForThisApplication;
-import com.blog.blog_app.services.PostService;
+import com.blog.blog_app.response_dto.*;
+import com.blog.blog_app.services.*;
+import com.razorpay.RazorpayException;
+import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,11 +30,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,11 +51,24 @@ public class PostImpl implements PostService {
 
     private final CategoryRepo categoryRepo;
 
+
+    @Autowired
+    private LinkedDetectionService linkedDetectionService;
+
     @Autowired
     private FileServieForThisApplication fileServieForThisApplication;
 
+    @Autowired
+    private ContentVerificationService contentVerificationService;
+
+    @Autowired
+    private  PaymentRepository paymentRepository;
+
     @Value("${project.ThisImageApp}")
     private String imagePath;
+
+    @Value(("${project.TemporaryImageForThisApp}"))
+    private String temporaryPath;
 
     @Autowired
     PostImpl(ModelMapper modelMapper, PostRepo postRepo, UserRepo userRepo, CategoryRepo categoryRepo) {
@@ -57,8 +78,22 @@ public class PostImpl implements PostService {
         this.categoryRepo = categoryRepo;
     }
 
+
+    private Integer calculateAmount(Integer durationInDays) {
+
+        return switch (durationInDays) {
+            case 7 -> Integer.valueOf(99);
+            case 15 -> Integer.valueOf(199);
+            case 30 -> Integer.valueOf(299);
+            default -> throw new BadRequestException(
+                    "Invalid promotion duration. Please choose 7, 15, or 30 days."
+            );
+        };
+    }
+
     @Override
-    public CreatedPostResponse createPost(CreatingPostDto creatingPostDto, Integer userId, Integer cateogaryId) {
+    @Transactional
+    public PendingPostResponse createPost(CreatingPostDto creatingPostDto, Integer userId, Integer cateogaryId) {
 
         User user = this.userRepo.findById(userId).orElseThrow(() -> new ResourceNotFoundException("uderId", "id", userId));
 
@@ -69,17 +104,121 @@ public class PostImpl implements PostService {
         post.setUser(user);
         post.setCategory(category);
 
-        Post savedPost = this.postRepo.save(post);
 
-        CreatedPostResponse map = this.modelMapper.map(savedPost, CreatedPostResponse.class);
-        map.setUserName(savedPost.getUser().getName());
-        map.setCategory_title(savedPost.getCategory().getCategoryTitle());
+        List<String> allUrlPresentInContent = linkedDetectionService.extractUrls(post.getPostContent());
 
-        return map;
+        List<String> AllProfessionalLinksRomulus = linkedDetectionService.getProfessionalLinks(allUrlPresentInContent);
+
+        //if there has professional links not present then we direct save our post
+        if (AllProfessionalLinksRomulus.isEmpty()) {
+
+            //if there has no proffesional links then we set image file in my permanent location
+            String finalImageName =
+                    fileServieForThisApplication.moveImage(
+                            temporaryPath,
+                            imagePath,
+                            post.getImageName());
+
+
+            post.setImageName(finalImageName);
+            //here we did not directly set published post annotation first we verify with ai
+            //post.setPostStatus(PostStatus.PUBLISHED);
+            post.setPostStatus(PostStatus.PENDING_VERIFICATION);
+            Post save = this.postRepo.save(post);
+
+            PendingPostResponse response = new PendingPostResponse();
+            response.setPostId(save.getPostId());
+            response.setProfessionalLinkCount(AllProfessionalLinksRomulus.size());
+            response.setPaymentRequired(false);
+            response.setMessage(
+                    "Post created successfully."
+            );
+
+            return response;
+        }
+
+
+        post.setCreatedAt(LocalDateTime.now());
+        post.setPostStatus(PostStatus.PENDING_PAYMENT);
+        post.setProfessionalLinkCount(AllProfessionalLinksRomulus.size());
+        Post save = postRepo.save(post);
+
+
+        PendingPostResponse response = new PendingPostResponse();
+        response.setPostId(save.getPostId());
+        response.setProfessionalLinkCount(save.getProfessionalLinkCount());
+        response.setPaymentRequired(true);
+        response.setMessage(
+                "Professional links detected. Please complete payment to continue."
+        );
+
+        return response;
     }
 
+
+
+    @Transactional
     @Override
-    public CreatedPostResponse updatePost(CreatingPostDto postDto, Integer posted ) {
+    public VerificationResult verifyPostContent(Integer postId) {
+
+        Post post = postRepo.findById(postId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Post",
+                                "id",
+                                postId
+                        ));
+
+        if (post.getPostStatus()
+                != PostStatus.PENDING_VERIFICATION) {
+
+            throw new IllegalStateException(
+                    "Post is not waiting for verification."
+            );
+        }
+
+        VerificationResult result =
+                contentVerificationService.verifyingPost(post);
+
+        if (result == VerificationResult.SAFE) {
+
+            post.setPostStatus(
+                    PostStatus.PUBLISHED
+            );
+
+           //and moving temporary file from permanent folder
+            String finalImageName =
+                    fileServieForThisApplication.moveImage(
+                            temporaryPath,
+                            imagePath,
+                            post.getImageName());
+
+
+            post.setImageName(finalImageName);
+            postRepo.save(post);
+
+            return VerificationResult.SAFE;
+        }
+
+
+        // UNSAFE(we were refunding amount while verifying payment is there is unsafe content)
+
+        post.setPostStatus(
+                PostStatus.REJECTED
+        );
+        try {
+            fileServieForThisApplication.deletingImage(temporaryPath,post.getImageName());
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        postRepo.save(post);
+
+        return VerificationResult.UNSAFE;
+    }
+
+
+    @Override
+    public CreatedPostResponse updatePost(CreatingPostDto postDto, Integer posted) {
 
         //first validating post id
         Post post = this.postRepo.findById(posted).orElseThrow(() -> new ResourceNotFoundException("post", "id", posted));
@@ -93,7 +232,6 @@ public class PostImpl implements PostService {
         } catch (IOException e) {
             throw new RuntimeException("Image could not be deleted", e);
         }
-
 
 
         //now we update post by particular id
@@ -111,7 +249,6 @@ public class PostImpl implements PostService {
 
         return createdPostResponse;
     }
-
 
 
     @Override
@@ -279,7 +416,6 @@ public class PostImpl implements PostService {
         return postResponse;
 
     }
-
 
 
 }

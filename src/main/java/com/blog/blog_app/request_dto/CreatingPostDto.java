@@ -27,8 +27,6 @@ public class CreatingPostDto {
     private String postContent;
 
 
-    // private String imageName;  here i did not took image name i store it into local
-
     @JsonFormat(pattern = "yyyy/MM/dd hh:mm:ss a")
     @NotNull(message = "Provide Date in Date Time Formate....ex= yyyy/MM/dd hh:mm:ss a  (2026/07/07 03:45:28 PM)")
     private Date addedDate;

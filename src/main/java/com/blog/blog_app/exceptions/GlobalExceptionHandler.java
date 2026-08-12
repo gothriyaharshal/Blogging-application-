@@ -38,4 +38,35 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ApiResponse> unauthorizedExceptionResponseEntity(UnauthorizedException unauthorizedException)
+    {
+        String message = unauthorizedException.getMessage();
+        ApiResponse apiResponse = new ApiResponse(message,false);
+
+        return new ResponseEntity<>(apiResponse,HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(PromotionAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse> promotionAlreadyExists(PromotionAlreadyExistsException promotionAlreadyExistsException)
+    {
+        String message = promotionAlreadyExistsException.getMessage();
+
+        ApiResponse apiResponse = new ApiResponse(message,false);
+
+        return new  ResponseEntity<ApiResponse>(apiResponse,HttpStatus.NOT_FOUND);
+    }
+
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse> handleBadRequestException(BadRequestException ex) {
+
+        ApiResponse response = new ApiResponse(
+                ex.getMessage(),
+                false
+        );
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
 }

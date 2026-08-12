@@ -15,4 +15,11 @@ public interface FileServieForThisApplication {
     InputStream generatingFile(String path , String filename) throws FileNotFoundException;
 
 
+    //deleting files
+    public void deletingImage(String path , String filename) throws FileNotFoundException;
+
+    //moving file from one folder to another folder
+    String moveImage(String sourcePath, String destinationPath, String fileName);
+
+
 }

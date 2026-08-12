@@ -4,10 +4,7 @@ import com.blog.blog_app.payloads.AppConstants;
 import com.blog.blog_app.request_dto.CreatingPostDto;
 import com.blog.blog_app.request_dto.PostDto;
 import com.blog.blog_app.payloads.ApiResponse;
-import com.blog.blog_app.response_dto.CreatedPostResponse;
-import com.blog.blog_app.response_dto.PostCateogaryResponse;
-import com.blog.blog_app.response_dto.PostResponse;
-import com.blog.blog_app.response_dto.PostResponseByUerId;
+import com.blog.blog_app.response_dto.*;
 import com.blog.blog_app.services.FileServieForThisApplication;
 import com.blog.blog_app.services.PostService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -46,29 +43,45 @@ public class PostController {
     @Value("${project.ThisImageApp}")
     private String path;
 
+    @Value("${project.TemporaryImageForThisApp}")
+    private String temporaryPath;
 
+
+
+
+/*
     //Normal posting where i am only post without image
     @PostMapping("/create/user/{userId}/cateogary/{cateogaryId}")
     public ResponseEntity<CreatedPostResponse> creatingPostWithController(@RequestBody CreatingPostDto creatingPostDto, @PathVariable Integer userId, @PathVariable Integer cateogaryId) {
         CreatedPostResponse createdPostResponse = this.postService.createPost(creatingPostDto, userId, cateogaryId);
         return new ResponseEntity<>(createdPostResponse, HttpStatus.CREATED);
-    }
+    }*/
 
     //post where i include image and all data
     @PostMapping(value = "/create/user/{userId}/category/{categoryId}/"
             , consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    public ResponseEntity<CreatedPostResponse> creatingPost(
+    public ResponseEntity<PendingPostResponse> creatingPost(
             @RequestPart("post") CreatingPostDto creatingPostDto,
             @RequestPart("image") MultipartFile file,
             @PathVariable Integer userId, @PathVariable Integer categoryId) {
+
+
+        //we storing image at temporary location
+        String temporaryImageSet = fileServieForThisApplication.creatingImage(temporaryPath, file);
+
+       /* //this is our permanent location
         String imageName = fileServieForThisApplication.creatingImage(path, file);
+
+
         System.out.println("image name " + imageName);
         creatingPostDto.setImageName(imageName);
+*/
+        System.out.println("Temporary image name " + temporaryImageSet);
+        creatingPostDto.setImageName(temporaryImageSet);
 
-
-        CreatedPostResponse createdPostResponse = this.postService.createPost(creatingPostDto, userId, categoryId);
-        return new ResponseEntity<>(createdPostResponse, HttpStatus.CREATED);
+        PendingPostResponse pendingPostResponse = this.postService.createPost(creatingPostDto, userId, categoryId);
+        return new ResponseEntity<>(pendingPostResponse, HttpStatus.CREATED);
     }
 
 

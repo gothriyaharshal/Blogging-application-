@@ -51,4 +51,38 @@ public class FileThisServiceImpl implements FileServieForThisApplication {
 
        return inputStream;
     }
+
+    @Override
+    public void deletingImage(String path, String filename){
+        try {
+            Files.deleteIfExists(Path.of(path, filename));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to delete image.", e);
+        }
+    }
+
+    @Override
+    public String moveImage(String sourcePath, String destinationPath, String fileName) {
+
+
+        try {
+
+            Path source = Path.of(sourcePath, fileName);
+
+            Path destination = Path.of(destinationPath, fileName);
+
+            // Create destination folder if it doesn't exist
+            Files.createDirectories(destination.getParent());
+
+            // Move the file
+            Files.move(source, destination);
+
+            return fileName;
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to move image.", e);
+        }
+    }
+
+
 }
